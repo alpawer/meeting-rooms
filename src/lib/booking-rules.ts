@@ -1,4 +1,5 @@
 import { durationMinutes, findConflict, isValidInterval, type Interval } from '@/lib/interval';
+import { DEFAULT_LOCALE, messages, type Locale } from '@/lib/messages';
 import {
   MAX_DURATION_MINUTES,
   MIN_DURATION_MINUTES,
@@ -20,18 +21,18 @@ export interface BookingRuleFailure {
   message: string;
 }
 
-const MESSAGES: Record<BookingRuleCode, string> = {
-  INVALID_RANGE: 'Час завершення має бути пізніше за час початку.',
-  NOT_ALIGNED: 'Час має бути кратним 30 хвилинам.',
-  TOO_SHORT: 'Мінімальна тривалість — 30 хвилин.',
-  TOO_LONG: 'Максимальна тривалість — 4 години.',
-  IN_THE_PAST: 'Бронювати можна лише майбутній час.',
-  OUTSIDE_WORKING_HOURS: 'Кімнати доступні з 09:00 до 19:00 за часом офісу.',
-  SLOT_TAKEN: 'Цей час уже зайнятий.',
+const CODE_TO_KEY: Record<BookingRuleCode, keyof ReturnType<typeof messages>['booking']> = {
+  INVALID_RANGE: 'invalidRange',
+  NOT_ALIGNED: 'notAligned',
+  TOO_SHORT: 'tooShort',
+  TOO_LONG: 'tooLong',
+  IN_THE_PAST: 'inThePast',
+  OUTSIDE_WORKING_HOURS: 'outsideWorkingHours',
+  SLOT_TAKEN: 'slotTaken',
 };
 
-function fail(code: BookingRuleCode): BookingRuleFailure {
-  return { code, message: MESSAGES[code] };
+function fail(code: BookingRuleCode, locale: Locale): BookingRuleFailure {
+  return { code, message: messages(locale).booking[CODE_TO_KEY[code]] };
 }
 
 /**
@@ -45,22 +46,23 @@ export function checkBookingRules(
   candidate: Interval,
   existing: readonly Interval[],
   now: Date,
+  locale: Locale = DEFAULT_LOCALE,
 ): BookingRuleFailure | null {
-  if (!isValidInterval(candidate)) return fail('INVALID_RANGE');
+  if (!isValidInterval(candidate)) return fail('INVALID_RANGE', locale);
   if (!isAlignedToSlot(candidate.start) || !isAlignedToSlot(candidate.end)) {
-    return fail('NOT_ALIGNED');
+    return fail('NOT_ALIGNED', locale);
   }
 
   const minutes = durationMinutes(candidate);
-  if (minutes < MIN_DURATION_MINUTES) return fail('TOO_SHORT');
-  if (minutes > MAX_DURATION_MINUTES) return fail('TOO_LONG');
+  if (minutes < MIN_DURATION_MINUTES) return fail('TOO_SHORT', locale);
+  if (minutes > MAX_DURATION_MINUTES) return fail('TOO_LONG', locale);
 
-  if (candidate.start.getTime() < now.getTime()) return fail('IN_THE_PAST');
+  if (candidate.start.getTime() < now.getTime()) return fail('IN_THE_PAST', locale);
   if (!isWithinWorkingHours(candidate.start, candidate.end)) {
-    return fail('OUTSIDE_WORKING_HOURS');
+    return fail('OUTSIDE_WORKING_HOURS', locale);
   }
 
-  if (findConflict(candidate, existing)) return fail('SLOT_TAKEN');
+  if (findConflict(candidate, existing)) return fail('SLOT_TAKEN', locale);
 
   return null;
 }
