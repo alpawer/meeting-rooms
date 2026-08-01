@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  // Stored normalized, trimmed and lowercased, so uniqueness is case insensitive.
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  bookings     Booking[]
+}
+
+model Room {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  floor    Int
+  capacity Int
+  bookings Booking[]
+}
+
+model Booking {
+  id    String @id @default(cuid())
+  title String
+
+  // Both bounds are UTC. Timezones apply only at the edges of the system,
+  // when validating office hours and when rendering.
+  startsAt DateTime
+  endsAt   DateTime
+
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // Second line of defence against races: two identical start times in the
+  // same room are impossible. Partial overlaps with different start times are
+  // NOT caught here, the transaction handles those.
+  @@unique([roomId, startsAt])
+  @@index([roomId, startsAt, endsAt])
+  @@index([userId, startsAt])
+}
