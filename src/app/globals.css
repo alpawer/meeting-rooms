@@ -590,3 +590,213 @@ h1 {
 .topbar-placeholder {
   height: 55px;
 }
+
+/* ── Week grid ──────────────────────────────────────────────────────── */
+.week-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.week-label {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* Both axes scroll here. If only overflow-x were set, this box would still
+   become the nearest scroll container for sticky headers while scrolling
+   vertically with the page, and the day headers would slide away.
+   
+   The edge shadows are pure CSS: two fixed cover layers and two scrolling
+   gradient layers on top of them. A gradient is hidden while its cover sits
+   at the edge, so the hint only shows when there is more to scroll. */
+.grid-scroll {
+  overflow: auto;
+  max-height: calc(100dvh - 260px);
+  min-height: 420px;
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 30%, transparent) right center / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(15, 18, 22, 0.16), transparent) left center / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(15, 18, 22, 0.16), transparent) right center / 14px 100% no-repeat scroll,
+    var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: var(--gutter-width) repeat(7, minmax(112px, 1fr));
+  min-width: 860px;
+}
+
+.grid-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-strong);
+  border-right: 1px solid var(--line);
+}
+
+.grid-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-strong);
+  padding: 9px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grid-head.is-today {
+  background: var(--accent-soft);
+}
+
+.grid-head .dow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+.grid-head .dom {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.grid-head.is-today .dom {
+  color: var(--accent);
+}
+
+.time-label {
+  grid-column: 1;
+  height: var(--slot-height);
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 3px 8px 0 0;
+}
+
+/* The label only changes colour. Drawing a line across the gutter made the
+   marker read as a divider spanning the whole week instead of a point in
+   today's column. */
+.time-label.is-now {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+/* Marks the end of the working day, since row labels show slot starts. */
+.time-close {
+  grid-column: 1;
+  height: 22px;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 8px 0 0;
+}
+
+.day-close {
+  height: 22px;
+  border-right: 1px solid var(--line);
+}
+
+.slot {
+  height: var(--slot-height);
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  transition: background var(--fast) var(--ease);
+}
+
+.slot:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.slot:hover:not(:disabled)::after {
+  content: '+';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.slot:disabled {
+  cursor: default;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 5px,
+    var(--neutral-soft) 5px,
+    var(--neutral-soft) 10px
+  );
+}
+
+.slot.is-today-col:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.slot.is-now {
+  border-top: 2px solid var(--danger);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 10px 2px 0;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --gutter-width: 56px;
+    --slot-height: 40px;
+  }
+}
