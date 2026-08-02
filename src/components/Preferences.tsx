@@ -5,6 +5,8 @@ import { DEFAULT_LOCALE, LOCALES, messages, type Locale } from '@/lib/messages';
 import { LOCALE_STORAGE_KEY, THEME_STORAGE_KEY, type Theme } from '@/lib/theme';
 
 interface Preferences {
+  /** False during the server render and the first client render. */
+  ready: boolean;
   locale: Locale;
   setLocale: (locale: Locale) => void;
   theme: Theme;
@@ -14,20 +16,34 @@ interface Preferences {
 
 const PreferencesContext = createContext<Preferences | null>(null);
 
-export function PreferencesProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
-  const [theme, setTheme] = useState<Theme>('light');
+/**
+ * Reads what the bootstrap script already put on <html>.
+ * Runs during the first render, not in an effect, otherwise every navigation
+ * would briefly show the defaults before the stored choice was restored.
+ */
+function initialLocale(): Locale {
+  if (typeof document === 'undefined') return DEFAULT_LOCALE;
+  const lang = document.documentElement.lang;
+  return (LOCALES as readonly string[]).includes(lang) ? (lang as Locale) : DEFAULT_LOCALE;
+}
 
-  // The theme attribute is already set by the bootstrap script, so this only
-  // syncs React state with what is on the page.
+function initialTheme(): Theme {
+  if (typeof document === 'undefined') return 'light';
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+}
+
+export function PreferencesProvider({ children }: { children: React.ReactNode }) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const [theme, setTheme] = useState<Theme>(initialTheme);
+
+  // Theme and locale only exist in the browser, so anything that depends on
+  // them renders after mount. Rendering it on the server would produce markup
+  // the client disagrees with, and React would throw the whole tree away.
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (stored && (LOCALES as readonly string[]).includes(stored)) {
-      setLocaleState(stored as Locale);
-      document.documentElement.lang = stored;
-    }
-    const current = document.documentElement.getAttribute('data-theme');
-    if (current === 'dark' || current === 'light') setTheme(current);
+    setLocaleState(initialLocale());
+    setTheme(initialTheme());
+    setReady(true);
   }, []);
 
   const setLocale = useCallback((next: Locale) => {
@@ -47,9 +63,12 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
   return (
     <PreferencesContext.Provider
-      value={{ locale, setLocale, theme, toggleTheme, t: messages(locale) }}
+      value={{ ready, locale, setLocale, theme, toggleTheme, t: messages(locale) }}
     >
-      {children}
+      {/* Children are not rendered at all until the stored locale and theme
+          are known. Hiding them was not enough: React still compared the
+          server text with the client text and discarded the tree. */}
+      {ready ? children : null}
     </PreferencesContext.Provider>
   );
 }

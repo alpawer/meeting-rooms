@@ -3,7 +3,7 @@ import './globals.css';
 import { getSessionUser } from '@/lib/session';
 import { Header } from '@/components/Header';
 import { PreferencesProvider } from '@/components/Preferences';
-import { THEME_BOOTSTRAP } from '@/lib/theme';
+import { PREFERENCES_BOOTSTRAP } from '@/lib/theme';
 
 export const metadata: Metadata = {
   title: 'Meeting rooms',
@@ -16,8 +16,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="uk" suppressHydrationWarning>
       <head>
-        {/* Applies the theme before the first paint to avoid a flash. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+        {/* Applies theme and locale before the first paint to avoid a flash. */}
+        <script dangerouslySetInnerHTML={{ __html: PREFERENCES_BOOTSTRAP }} />
       </head>
       <body>
         <PreferencesProvider>

@@ -8,7 +8,7 @@ import { LOCALES } from '@/lib/messages';
 import type { SessionUser } from '@/lib/session';
 
 export function Header({ user }: { user: SessionUser | null }) {
-  const { t, locale, setLocale, theme, toggleTheme } = usePreferences();
+  const { ready, t, locale, setLocale, theme, toggleTheme } = usePreferences();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -22,6 +22,11 @@ export function Header({ user }: { user: SessionUser | null }) {
       setSigningOut(false);
     }
   }
+
+  // Until preferences are read from the browser the header would render with
+  // the wrong language and theme icon, so it holds an empty bar of the same
+  // height instead of shifting the layout when it appears.
+  if (!ready) return <header className="topbar topbar-placeholder" aria-hidden="true" />;
 
   return (
     <header className="topbar">

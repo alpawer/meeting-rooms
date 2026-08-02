@@ -6,18 +6,25 @@ export const LOCALE_STORAGE_KEY = 'locale';
 
 /**
  * Runs before the first paint, inline in <head>.
- * Without it the light theme would flash before dark is applied.
+ *
+ * Both preferences are applied to <html> here rather than in an effect.
+ * Reading them after the first render made the default theme and locale
+ * flash on every navigation before the stored choice kicked in.
  */
-export const THEME_BOOTSTRAP = `
+export const PREFERENCES_BOOTSTRAP = `
 (function () {
+  var root = document.documentElement;
   try {
-    var stored = localStorage.getItem('${THEME_STORAGE_KEY}');
-    var theme = stored === 'dark' || stored === 'light'
-      ? stored
-      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', theme);
+    var storedTheme = localStorage.getItem('${THEME_STORAGE_KEY}');
+    root.setAttribute('data-theme',
+      storedTheme === 'dark' || storedTheme === 'light'
+        ? storedTheme
+        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+    var storedLocale = localStorage.getItem('${LOCALE_STORAGE_KEY}');
+    if (storedLocale === 'uk' || storedLocale === 'en') root.lang = storedLocale;
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'light');
+    root.setAttribute('data-theme', 'light');
   }
 })();
 `;
