@@ -800,3 +800,49 @@ h1 {
     --slot-height: 40px;
   }
 }
+
+/* The grid stays in place while a new week loads and only dims. Clicks are
+   blocked so a slot from the outgoing week cannot be booked. */
+.grid-scroll.is-refreshing {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.booking {
+  margin: 1px 3px 1px 1px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--neutral);
+  background: var(--neutral-soft);
+  padding: 4px 7px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  z-index: 2;
+}
+
+.booking.is-mine {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.booking-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.booking-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -77,6 +77,8 @@ const uk = {
     slotFree: 'Забронювати',
     slotPast: 'час минув',
     weekdays: 'Пн Вт Ср Чт Пт Сб Нд',
+    you: 'ви',
+    cancelBooking: 'Скасувати',
   },
   auth: {
     loginTitle: 'Вхід',
@@ -188,6 +190,8 @@ const en: Dictionary = {
     slotFree: 'Book',
     slotPast: 'time has passed',
     weekdays: 'Mon Tue Wed Thu Fri Sat Sun',
+    you: 'you',
+    cancelBooking: 'Cancel',
   },
   auth: {
     loginTitle: 'Sign in',

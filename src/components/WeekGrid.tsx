@@ -1,9 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DateTime } from 'luxon';
 import { usePreferences } from '@/components/Preferences';
-import { userTimeZone, zoneLabel } from '@/lib/format';
+import { ApiError, api } from '@/lib/client-api';
+import { formatRange, userTimeZone, zoneLabel } from '@/lib/format';
+import type { BookingDto } from '@/lib/bookings';
 
 interface Room {
   id: string;
@@ -32,10 +34,76 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
   const zone = ready ? userTimeZone() : office.timeZone;
   const now = DateTime.now();
 
+  const [bookings, setBookings] = useState<BookingDto[] | null>(null);
+  const [loadedWeek, setLoadedWeek] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  /**
+   * The previous week stays on screen while the next one loads. Replacing the
+   * grid with a shorter skeleton made the legend below jump up and back down.
+   */
+  const load = useCallback(async () => {
+    setLoadError(null);
+    setRefreshing(true);
+    try {
+      const from = weekStart.toUTC().toISO() ?? '';
+      const to = weekStart.plus({ weeks: 1 }).toUTC().toISO() ?? '';
+      const response = await api<{ bookings: BookingDto[] }>(
+        `/api/bookings?roomId=${room.id}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      );
+      setBookings(response.bookings);
+      setLoadedWeek(weekStart.toISODate());
+    } catch (error) {
+      setLoadError(
+        error instanceof ApiError && error.code !== 'NETWORK'
+          ? error.message
+          : t.ui.serverUnavailable,
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  }, [room.id, weekStart, t.ui.serverUnavailable]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, index) => weekStart.plus({ days: index })),
     [weekStart],
   );
+
+  /**
+   * Maps each booking to the cell it starts in, and marks every cell it covers
+   * so no empty button is rendered underneath the block.
+   *
+   * Nothing is laid out while a different week is loading, otherwise the
+   * previous week's blocks would appear under the new dates for a moment.
+   */
+  const layout = useMemo(() => {
+    const startsAt = new Map<string, BookingDto>();
+    const covered = new Set<string>();
+    if (!bookings || loadedWeek !== weekStart.toISODate()) return { startsAt, covered };
+
+    days.forEach((day, dayIndex) => {
+      const open = day.set({ hour: office.openHour });
+
+      for (const booking of bookings) {
+        const start = DateTime.fromISO(booking.startsAt, { zone: office.timeZone });
+        const end = DateTime.fromISO(booking.endsAt, { zone: office.timeZone });
+        if (!start.hasSame(day, 'day')) continue;
+
+        const firstRow = Math.round(start.diff(open, 'minutes').minutes / office.slotMinutes);
+        const lastRow = Math.round(end.diff(open, 'minutes').minutes / office.slotMinutes);
+
+        startsAt.set(`${dayIndex}:${firstRow}`, booking);
+        for (let row = firstRow; row < lastRow; row += 1) covered.add(`${dayIndex}:${row}`);
+      }
+    });
+
+    return { startsAt, covered };
+  }, [bookings, loadedWeek, weekStart, days, office.openHour, office.slotMinutes, office.timeZone]);
 
   const weekdays = t.grid.weekdays.split(' ');
   const todayIndex = days.findIndex((day) => day.hasSame(now.setZone(office.timeZone), 'day'));
@@ -105,7 +173,25 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
         </span>
       </div>
 
-      <div className="grid-scroll">
+      {loadError ? (
+        <div className="card state">
+          <h3>{t.grid.loadFailedTitle}</h3>
+          <p>{loadError}</p>
+          <button type="button" className="btn" onClick={() => void load()}>
+            {t.ui.retry}
+          </button>
+        </div>
+      ) : !bookings ? (
+        <div className="grid-scroll" style={{ padding: 16 }} aria-busy="true">
+          {Array.from({ length: slotsPerDay }, (_, index) => (
+            <div key={index} className="skeleton" style={{ height: 32, marginBottom: 6 }} />
+          ))}
+        </div>
+      ) : (
+      <div
+        className={`grid-scroll${refreshing ? ' is-refreshing' : ''}`}
+        aria-busy={refreshing}
+      >
         <div className="grid">
           <div className="grid-corner" style={{ gridColumn: 1, gridRow: 1 }} />
 
@@ -140,6 +226,38 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
 
           {days.map((day, dayIndex) =>
             Array.from({ length: slotsPerDay }, (_, row) => {
+              const key = `${dayIndex}:${row}`;
+              const booking = layout.startsAt.get(key);
+
+              if (booking) {
+                const start = DateTime.fromISO(booking.startsAt, { zone: office.timeZone });
+                const end = DateTime.fromISO(booking.endsAt, { zone: office.timeZone });
+                // Height comes from the duration measured in slots.
+                const span = Math.max(
+                  1,
+                  Math.round(end.diff(start, 'minutes').minutes / office.slotMinutes),
+                );
+
+                return (
+                  <div
+                    key={key}
+                    className={`booking${booking.isMine ? ' is-mine' : ''}`}
+                    style={{ gridColumn: dayIndex + 2, gridRow: `${row + 2} / span ${span}` }}
+                  >
+                    <span className="booking-title" title={booking.title}>
+                      {booking.title}
+                    </span>
+                    <span className="booking-meta">
+                      {formatRange(booking.startsAt, booking.endsAt, zone)} ·{' '}
+                      {booking.isMine ? t.grid.you : booking.userName}
+                    </span>
+                  </div>
+                );
+              }
+
+              // Cells under a block are skipped, the block already covers them.
+              if (layout.covered.has(key)) return null;
+
               const slotStart = day
                 .set({ hour: office.openHour })
                 .plus({ minutes: row * office.slotMinutes });
@@ -147,7 +265,7 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
 
               return (
                 <button
-                  key={`${dayIndex}:${row}`}
+                  key={key}
                   type="button"
                   className={[
                     'slot',
@@ -180,6 +298,7 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
           ))}
         </div>
       </div>
+      )}
 
       <div className="legend">
         <span>
