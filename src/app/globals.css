@@ -898,3 +898,26 @@ h1 {
     opacity: 0;
   }
 }
+
+.booking-cancel {
+  margin-top: auto;
+  align-self: flex-start;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+  background: none;
+  border: 0;
+  padding: 2px 0 0;
+  cursor: pointer;
+  text-decoration: underline;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+/* The cancel action stays hidden until the block is hovered or focused, so
+   the grid reads as a schedule rather than a list of buttons. */
+.booking:hover .booking-cancel,
+.booking-cancel:focus-visible {
+  opacity: 1;
+}

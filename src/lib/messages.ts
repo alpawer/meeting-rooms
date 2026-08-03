@@ -80,6 +80,14 @@ const uk = {
     you: 'ви',
     cancelBooking: 'Скасувати',
   },
+  confirm: {
+    cancelTitle: 'Скасувати бронювання?',
+    cancelText: 'Слот одразу стане вільним для інших.',
+    keep: 'Залишити',
+    confirmCancel: 'Скасувати бронювання',
+    cancelling: 'Скасовуємо…',
+    cancelFailed: 'Не вдалося скасувати бронювання.',
+  },
   dialog: {
     newBooking: 'Нове бронювання',
     titleLabel: 'Назва зустрічі',
@@ -205,6 +213,14 @@ const en: Dictionary = {
     weekdays: 'Mon Tue Wed Thu Fri Sat Sun',
     you: 'you',
     cancelBooking: 'Cancel',
+  },
+  confirm: {
+    cancelTitle: 'Cancel this booking?',
+    cancelText: 'The slot becomes free for everyone straight away.',
+    keep: 'Keep it',
+    confirmCancel: 'Cancel booking',
+    cancelling: 'Cancelling…',
+    cancelFailed: 'Could not cancel the booking.',
   },
   dialog: {
     newBooking: 'New booking',

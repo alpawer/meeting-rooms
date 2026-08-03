@@ -6,6 +6,7 @@ import { usePreferences } from '@/components/Preferences';
 import { ApiError, api } from '@/lib/client-api';
 import { formatRange, userTimeZone, zoneLabel } from '@/lib/format';
 import { BookingDialog } from '@/components/BookingDialog';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { BookingDto } from '@/lib/bookings';
 
 interface Room {
@@ -40,6 +41,28 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [draftStart, setDraftStart] = useState<DateTime | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<BookingDto | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function cancelBooking() {
+    if (!pendingCancel) return;
+    setCancelling(true);
+    setActionError(null);
+    try {
+      await api(`/api/bookings/${pendingCancel.id}`, {
+        method: 'DELETE',
+        headers: { 'Accept-Language': locale },
+      });
+      setPendingCancel(null);
+      await load();
+    } catch (error) {
+      setActionError(error instanceof ApiError ? error.message : t.confirm.cancelFailed);
+      setPendingCancel(null);
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   /**
    * The previous week stays on screen while the next one loads. Replacing the
@@ -185,6 +208,12 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
         </span>
       </div>
 
+      {actionError && (
+        <p className="form-error" role="alert">
+          {actionError}
+        </p>
+      )}
+
       {loadError ? (
         <div className="card state">
           <h3>{t.grid.loadFailedTitle}</h3>
@@ -263,6 +292,16 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
                       {formatRange(booking.startsAt, booking.endsAt, zone)} ·{' '}
                       {booking.isMine ? t.grid.you : booking.userName}
                     </span>
+                    {/* Cancelling a booking that already ended makes no sense. */}
+                    {booking.isMine && end > now && (
+                      <button
+                        type="button"
+                        className="booking-cancel"
+                        onClick={() => setPendingCancel(booking)}
+                      >
+                        {t.grid.cancelBooking}
+                      </button>
+                    )}
                   </div>
                 );
               }
@@ -344,6 +383,21 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
             setDraftStart(null);
             void load();
           }}
+        />
+      )}
+
+      {pendingCancel && (
+        <ConfirmDialog
+          title={t.confirm.cancelTitle}
+          description={`${pendingCancel.title}, ${formatRange(
+            pendingCancel.startsAt,
+            pendingCancel.endsAt,
+            zone,
+          )}. ${t.confirm.cancelText}`}
+          confirmLabel={t.confirm.confirmCancel}
+          pending={cancelling}
+          onConfirm={() => void cancelBooking()}
+          onCancel={() => setPendingCancel(null)}
         />
       )}
     </main>
