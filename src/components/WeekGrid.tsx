@@ -23,14 +23,26 @@ export interface OfficeConfig {
   slotMinutes: number;
 }
 
-export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig }) {
+export function WeekGrid({
+  room,
+  office,
+  initialWeek,
+}: {
+  room: Room;
+  office: OfficeConfig;
+  /** Opens a specific week, used when arriving from the bookings list. */
+  initialWeek?: string | null;
+}) {
   const { t, locale, ready } = usePreferences();
 
   const slotsPerDay = ((office.closeHour - office.openHour) * 60) / office.slotMinutes;
 
   /** Monday 00:00 in office time anchors the whole grid. */
   const [weekStart, setWeekStart] = useState(() =>
-    DateTime.now().setZone(office.timeZone).startOf('week'),
+    (initialWeek
+      ? DateTime.fromISO(initialWeek, { zone: office.timeZone })
+      : DateTime.now().setZone(office.timeZone)
+    ).startOf('week'),
   );
 
   const zone = ready ? userTimeZone() : office.timeZone;

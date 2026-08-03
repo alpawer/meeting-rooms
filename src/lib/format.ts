@@ -21,3 +21,14 @@ export function formatTime(iso: string, zone: string): string {
 export function formatRange(startIso: string, endIso: string, zone: string): string {
   return `${formatTime(startIso, zone)}–${formatTime(endIso, zone)}`;
 }
+
+/** Short date and time range for list rows, for example Mon, 3 Aug 10:00-11:00. */
+export function formatWhen(
+  startIso: string,
+  endIso: string,
+  zone: string,
+  locale: string,
+): string {
+  const start = DateTime.fromISO(startIso, { zone }).setLocale(locale);
+  return `${start.toFormat('ccc, d MMM')} · ${formatRange(startIso, endIso, zone)}`;
+}

@@ -39,7 +39,7 @@ export function Header({ user }: { user: SessionUser | null }) {
           {user ? (
             <>
               <Link href="/rooms">{t.ui.rooms}</Link>
-              <Link href="/my">{t.ui.myBookings}</Link>
+              <Link href="/my?scope=upcoming">{t.ui.myBookings}</Link>
             </>
           ) : (
             <>
