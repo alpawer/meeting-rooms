@@ -5,6 +5,7 @@ import { DateTime } from 'luxon';
 import { usePreferences } from '@/components/Preferences';
 import { ApiError, api } from '@/lib/client-api';
 import { formatRange, userTimeZone, zoneLabel } from '@/lib/format';
+import { BookingDialog } from '@/components/BookingDialog';
 import type { BookingDto } from '@/lib/bookings';
 
 interface Room {
@@ -38,6 +39,7 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
   const [loadedWeek, setLoadedWeek] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [draftStart, setDraftStart] = useState<DateTime | null>(null);
 
   /**
    * The previous week stays on screen while the next one loads. Replacing the
@@ -104,6 +106,16 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
 
     return { startsAt, covered };
   }, [bookings, loadedWeek, weekStart, days, office.openHour, office.slotMinutes, office.timeZone]);
+
+  /** Minutes free from a cell until the next booking or the end of the day. */
+  function freeMinutesFrom(dayIndex: number, row: number): number {
+    let free = 0;
+    for (let cursor = row; cursor < slotsPerDay; cursor += 1) {
+      if (layout.covered.has(`${dayIndex}:${cursor}`)) break;
+      free += office.slotMinutes;
+    }
+    return free;
+  }
 
   const weekdays = t.grid.weekdays.split(' ');
   const todayIndex = days.findIndex((day) => day.hasSame(now.setZone(office.timeZone), 'day'));
@@ -276,6 +288,7 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
                     .join(' ')}
                   style={{ gridColumn: dayIndex + 2, gridRow: row + 2 }}
                   disabled={isPast}
+                  onClick={() => setDraftStart(slotStart)}
                   aria-label={`${slotStart.setZone(zone).toFormat('d MMM, HH:mm')} ${
                     isPast ? t.grid.slotPast : t.grid.slotFree
                   }`}
@@ -312,6 +325,27 @@ export function WeekGrid({ room, office }: { room: Room; office: OfficeConfig })
         </span>
         <span>{t.grid.legendFree}</span>
       </div>
+
+      {draftStart && (
+        <BookingDialog
+          room={room}
+          zone={zone}
+          office={office}
+          start={draftStart}
+          maxMinutes={freeMinutesFrom(
+            days.findIndex((day) => day.hasSame(draftStart, 'day')),
+            Math.round(
+              draftStart.diff(draftStart.set({ hour: office.openHour }), 'minutes').minutes /
+                office.slotMinutes,
+            ),
+          )}
+          onClose={() => setDraftStart(null)}
+          onCreated={() => {
+            setDraftStart(null);
+            void load();
+          }}
+        />
+      )}
     </main>
   );
 }

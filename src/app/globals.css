@@ -809,12 +809,16 @@ h1 {
   transition: opacity var(--fast) var(--ease);
 }
 
+/* Bookings by other people stay quiet: no fill, muted text, thin bar.
+   Own bookings get the accent and a tinted fill, so the two read apart at a
+   glance rather than by comparing shades. */
 .booking {
   margin: 1px 3px 1px 1px;
   border-radius: 3px;
   border: 1px solid var(--line);
-  border-left: 3px solid var(--neutral);
-  background: var(--neutral-soft);
+  border-left: 3px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
   padding: 4px 7px;
   overflow: hidden;
   display: flex;
@@ -845,4 +849,52 @@ h1 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── Dialog ─────────────────────────────────────────────────────────── */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 18, 22, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 50;
+  animation: fade var(--fast) var(--ease);
+}
+
+.dialog {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: min(440px, 100%);
+  padding: 24px;
+  animation: rise var(--slow) var(--ease);
+}
+
+.dialog h2 {
+  font-size: 19px;
+  margin-bottom: 4px;
+}
+
+.dialog-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0 0 18px;
+  line-height: 1.6;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
 }
