@@ -7,7 +7,8 @@
     "start": "next start",
     "test": "vitest run",
     "db:seed": "tsx prisma/seed.ts",
-    "db:setup": "prisma migrate deploy && prisma generate && tsx prisma/seed.ts"
+    "db:setup": "prisma migrate deploy && prisma generate && tsx prisma/seed.ts",
+    "test:integration": "prisma db push --url=\"file:./test.db\" --force-reset && DATABASE_URL=\"file:./test.db\" vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.9.1",
