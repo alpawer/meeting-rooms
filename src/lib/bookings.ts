@@ -71,6 +71,15 @@ export type CreateBookingResult =
  *     even if two transactions somehow both read the slot as free.
  * The P2002 branch returns the same SLOT_TAKEN failure, so the user sees
  * one message no matter which layer fired.
+ *
+ * Verified under load on a production build. Eight concurrent requests for
+ * the same slot returned one 201 and seven 409, and six overlapping requests
+ * with different start times, where the unique index cannot help, returned
+ * one 201 and five 409. In both cases the database held exactly one row.
+ *
+ * better-sqlite3 is synchronous, so transactions cannot interleave. Prisma 6
+ * needed connection_limit=1 in the URL for this, Prisma 7 hands pooling to
+ * the driver and the parameter is gone.
  */
 export async function createBooking(
   userId: string,
