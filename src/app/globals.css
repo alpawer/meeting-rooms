@@ -797,7 +797,81 @@ h1 {
 @media (max-width: 720px) {
   :root {
     --gutter-width: 56px;
-    --slot-height: 40px;
+    --slot-height: 46px;
+  }
+
+  /* One wide day column instead of seven narrow ones. Nothing overflows, so
+     the horizontal scroll and its edge shadows are gone. */
+  .grid {
+    grid-template-columns: var(--gutter-width) 1fr;
+    min-width: 0;
+  }
+
+  .grid-scroll {
+    background: var(--surface);
+    max-height: calc(100dvh - 300px);
+  }
+
+  .grid-head .dom {
+    font-size: 20px;
+  }
+
+  .week-bar {
+    gap: 6px;
+  }
+
+  .week-bar .btn {
+    flex: 1;
+    padding: 9px 6px;
+  }
+
+  .week-label {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* The header wrapped onto three lines and ate the top of the screen. */
+  .topbar-inner {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .nav {
+    gap: 2px;
+  }
+
+  .nav a {
+    padding: 5px 7px;
+    font-size: 14px;
+  }
+
+  .who {
+    padding-left: 10px;
+    margin-left: 2px;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .page-head {
+    gap: 8px;
+  }
+
+  /* Touch targets need room, and the cancel action cannot rely on hover. */
+  .booking-cancel {
+    opacity: 1;
+    font-size: 12px;
+  }
+
+  .booking-title {
+    font-size: 14px;
+  }
+
+  /* Keeps the legend on two lines rather than three. */
+  .legend {
+    gap: 10px 14px;
+    font-size: 11px;
   }
 }
 

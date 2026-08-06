@@ -79,6 +79,10 @@ const uk = {
     weekdays: 'Пн Вт Ср Чт Пт Сб Нд',
     you: 'ви',
     cancelBooking: 'Скасувати',
+    prevDay: 'Попередній день',
+    nextDay: 'Наступний день',
+    today: 'Сьогодні',
+    dayShort: 'День',
   },
   mine: {
     title: 'Мої бронювання',
@@ -226,6 +230,10 @@ const en: Dictionary = {
     weekdays: 'Mon Tue Wed Thu Fri Sat Sun',
     you: 'you',
     cancelBooking: 'Cancel',
+    prevDay: 'Previous day',
+    nextDay: 'Next day',
+    today: 'Today',
+    dayShort: 'Day',
   },
   mine: {
     title: 'My bookings',

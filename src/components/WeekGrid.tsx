@@ -7,6 +7,7 @@ import { ApiError, api } from '@/lib/client-api';
 import { formatRange, userTimeZone, zoneLabel } from '@/lib/format';
 import { BookingDialog } from '@/components/BookingDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useNarrow } from '@/lib/use-narrow';
 import type { BookingDto } from '@/lib/bookings';
 
 interface Room {
@@ -52,6 +53,32 @@ export function WeekGrid({
   const [loadedWeek, setLoadedWeek] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const narrow = useNarrow();
+  /** Which weekday is shown on narrow screens, Monday is 0. */
+  const [dayOffset, setDayOffset] = useState(
+    () => DateTime.now().setZone(office.timeZone).weekday - 1,
+  );
+
+  /** Moves one day back or forward, rolling over into the next week. */
+  function stepDay(direction: -1 | 1) {
+    const next = dayOffset + direction;
+    if (next < 0) {
+      setWeekStart((week) => week.minus({ weeks: 1 }));
+      setDayOffset(6);
+    } else if (next > 6) {
+      setWeekStart((week) => week.plus({ weeks: 1 }));
+      setDayOffset(0);
+    } else {
+      setDayOffset(next);
+    }
+  }
+
+  function goToToday() {
+    const today = DateTime.now().setZone(office.timeZone);
+    setWeekStart(today.startOf('week'));
+    setDayOffset(today.weekday - 1);
+  }
+
   const [draftStart, setDraftStart] = useState<DateTime | null>(null);
   const [pendingCancel, setPendingCancel] = useState<BookingDto | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -106,9 +133,16 @@ export function WeekGrid({
     void load();
   }, [load]);
 
+  /**
+   * Seven columns are unusable at phone widths, so a narrow screen shows one
+   * day and the navigation steps by day instead of by week.
+   */
   const days = useMemo(
-    () => Array.from({ length: 7 }, (_, index) => weekStart.plus({ days: index })),
-    [weekStart],
+    () =>
+      narrow
+        ? [weekStart.plus({ days: dayOffset })]
+        : Array.from({ length: 7 }, (_, index) => weekStart.plus({ days: index })),
+    [weekStart, narrow, dayOffset],
   );
 
   /**
@@ -201,22 +235,38 @@ export function WeekGrid({
       </div>
 
       <div className="week-bar">
-        <button type="button" className="btn btn-sm" onClick={() => setWeekStart((w) => w.minus({ weeks: 1 }))}>
-          ← {t.grid.prevWeek}
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => (narrow ? stepDay(-1) : setWeekStart((w) => w.minus({ weeks: 1 })))}
+          aria-label={narrow ? t.grid.prevDay : t.grid.prevWeek}
+        >
+          ← {narrow ? t.grid.dayShort : t.grid.prevWeek}
         </button>
         <button
           type="button"
           className="btn btn-sm"
-          onClick={() => setWeekStart(DateTime.now().setZone(office.timeZone).startOf('week'))}
+          onClick={() =>
+            narrow ? goToToday() : setWeekStart(DateTime.now().setZone(office.timeZone).startOf('week'))
+          }
         >
-          {t.grid.thisWeek}
+          {narrow ? t.grid.today : t.grid.thisWeek}
         </button>
-        <button type="button" className="btn btn-sm" onClick={() => setWeekStart((w) => w.plus({ weeks: 1 }))}>
-          {t.grid.nextWeek} →
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => (narrow ? stepDay(1) : setWeekStart((w) => w.plus({ weeks: 1 })))}
+          aria-label={narrow ? t.grid.nextDay : t.grid.nextWeek}
+        >
+          {narrow ? t.grid.dayShort : t.grid.nextWeek} →
         </button>
         <span className="week-label">
-          {weekStart.setLocale(locale).toFormat('d MMM')} –{' '}
-          {weekStart.plus({ days: 6 }).setLocale(locale).toFormat('d MMM yyyy')}
+          {narrow
+            ? days[0].setLocale(locale).toFormat('cccc, d MMMM yyyy')
+            : `${weekStart.setLocale(locale).toFormat('d MMM')} – ${weekStart
+                .plus({ days: 6 })
+                .setLocale(locale)
+                .toFormat('d MMM yyyy')}`}
         </span>
       </div>
 
@@ -254,7 +304,7 @@ export function WeekGrid({
               className={`grid-head${dayIndex === todayIndex ? ' is-today' : ''}`}
               style={{ gridColumn: dayIndex + 2, gridRow: 1 }}
             >
-              <span className="dow">{weekdays[dayIndex]}</span>
+              <span className="dow">{weekdays[day.weekday - 1]}</span>
               <span className="dom">{day.toFormat('d')}</span>
             </div>
           ))}
