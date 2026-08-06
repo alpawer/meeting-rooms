@@ -21,8 +21,8 @@ const ROOMS = [
 ];
 
 const USERS = [
-  { name: 'Олена Ткач', email: 'olena@ua-skills.com' },
-  { name: 'Богдан Кравець', email: 'bohdan@ua-skills.com' },
+  { name: 'Даня Патеруха', email: 'danylo@ua-skills.com' },
+  { name: 'Ярос Бізюк', email: 'yaroslav@ua-skills.com' },
 ];
 
 /**
