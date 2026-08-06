@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      # The database lives in a volume, not in the project directory.
+      DATABASE_URL: 'file:/app/data/app.db'
+      SESSION_SECRET: ${SESSION_SECRET:-docker-dev-secret-change-me-32-chars-min}
+      OFFICE_TIMEZONE: ${OFFICE_TIMEZONE:-Europe/Kyiv}
+      OFFICE_OPEN_HOUR: ${OFFICE_OPEN_HOUR:-9}
+      OFFICE_CLOSE_HOUR: ${OFFICE_CLOSE_HOUR:-19}
+      SEED_USER_PASSWORD: ${SEED_USER_PASSWORD:-password123}
+    volumes:
+      - db-data:/app/data
+
+volumes:
+  db-data:
