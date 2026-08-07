@@ -181,3 +181,67 @@ export async function listMyBookings(
     hasMore: bookings.length > pageSize,
   };
 }
+
+export interface EndingSoonNotice {
+  bookingId: string;
+  title: string;
+  roomName: string;
+  endsAt: string;
+  nextTitle: string;
+}
+
+/**
+ * Bookings of this user that end within the notification window and are
+ * followed immediately by someone else's booking in the same room.
+ *
+ * Every condition comes from the spec:
+ *  - the booking must be the user's own;
+ *  - it must end within NOTIFY_BEFORE_MINUTES from now, and not be over yet;
+ *  - the next slot in that room must be taken, otherwise there is nothing to
+ *    hurry for;
+ *  - notifiedAt must be unset, so the notice appears exactly once. Cancelling
+ *    either booking deletes a row, and the pair simply stops matching.
+ */
+export async function findEndingSoon(
+  userId: string,
+  windowMinutes: number,
+  now: Date = new Date(),
+): Promise<EndingSoonNotice[]> {
+  const horizon = new Date(now.getTime() + windowMinutes * 60_000);
+
+  const ending = await prisma.booking.findMany({
+    where: { userId, notifiedAt: null, endsAt: { gt: now, lte: horizon } },
+    include: INCLUDE,
+  });
+
+  const notices: EndingSoonNotice[] = [];
+
+  for (const booking of ending) {
+    // "The next slot is taken" means a booking starting exactly when this one
+    // ends. A later booking with a gap in between is not a reason to hurry.
+    const next = await prisma.booking.findFirst({
+      where: { roomId: booking.roomId, startsAt: booking.endsAt },
+      select: { title: true },
+    });
+    if (!next) continue;
+
+    notices.push({
+      bookingId: booking.id,
+      title: booking.title,
+      roomName: booking.room.name,
+      endsAt: booking.endsAt.toISOString(),
+      nextTitle: next.title,
+    });
+  }
+
+  return notices;
+}
+
+/** Marks notices as seen so they are not shown again after a reload. */
+export async function markNotified(bookingIds: string[], userId: string): Promise<void> {
+  if (bookingIds.length === 0) return;
+  await prisma.booking.updateMany({
+    where: { id: { in: bookingIds }, userId },
+    data: { notifiedAt: new Date() },
+  });
+}

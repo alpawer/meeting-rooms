@@ -3,6 +3,7 @@ import './globals.css';
 import { getSessionUser } from '@/lib/session';
 import { Header } from '@/components/Header';
 import { PreferencesProvider } from '@/components/Preferences';
+import { EndingSoonToasts } from '@/components/EndingSoonToasts';
 import { PREFERENCES_BOOTSTRAP } from '@/lib/theme';
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="shell">
             <Header user={user} />
             {children}
+            <EndingSoonToasts signedIn={user !== null} />
           </div>
         </PreferencesProvider>
       </body>

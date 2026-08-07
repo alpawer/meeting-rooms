@@ -2,7 +2,14 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaClient } from '@prisma/client';
 import { DateTime } from 'luxon';
-import { cancelBooking, createBooking, listMyBookings, listRoomBookings } from '@/lib/bookings';
+import {
+  cancelBooking,
+  createBooking,
+  findEndingSoon,
+  listMyBookings,
+  listRoomBookings,
+  markNotified,
+} from '@/lib/bookings';
 
 const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? 'file:./test.db' }),
@@ -196,5 +203,99 @@ describe('listings', () => {
     const page = await listMyBookings(olena, 'upcoming', 0, 10);
     expect(page.items).toHaveLength(1);
     expect(page.items[0].title).toBe('Mine');
+  });
+});
+
+describe('ending soon notifications', () => {
+  /** Ends inside the notification window, so the notice is due now. */
+  function endingSoon(minutesFromNow: number) {
+    const ends = DateTime.now().plus({ minutes: minutesFromNow }).startOf('minute');
+    return { start: ends.minus({ hours: 1 }).toJSDate(), end: ends.toJSDate() };
+  }
+
+  it('warns when the next slot is taken', async () => {
+    const { start, end } = endingSoon(6);
+    await prisma.booking.create({
+      data: { title: 'Mine', startsAt: start, endsAt: end, roomId, userId: olena },
+    });
+    await prisma.booking.create({
+      data: {
+        title: 'Next',
+        startsAt: end,
+        endsAt: DateTime.fromJSDate(end).plus({ hours: 1 }).toJSDate(),
+        roomId,
+        userId: bohdan,
+      },
+    });
+
+    const notices = await findEndingSoon(olena, 10);
+    expect(notices).toHaveLength(1);
+    expect(notices[0].nextTitle).toBe('Next');
+  });
+
+  it('stays quiet when the next slot is free', async () => {
+    const { start, end } = endingSoon(6);
+    await prisma.booking.create({
+      data: { title: 'Alone', startsAt: start, endsAt: end, roomId, userId: olena },
+    });
+
+    expect(await findEndingSoon(olena, 10)).toHaveLength(0);
+  });
+
+  it('stays quiet when the next booking is cancelled', async () => {
+    const { start, end } = endingSoon(6);
+    await prisma.booking.create({
+      data: { title: 'Mine', startsAt: start, endsAt: end, roomId, userId: olena },
+    });
+    const next = await prisma.booking.create({
+      data: {
+        title: 'Next',
+        startsAt: end,
+        endsAt: DateTime.fromJSDate(end).plus({ hours: 1 }).toJSDate(),
+        roomId,
+        userId: bohdan,
+      },
+    });
+    await prisma.booking.delete({ where: { id: next.id } });
+
+    expect(await findEndingSoon(olena, 10)).toHaveLength(0);
+  });
+
+  it('warns exactly once', async () => {
+    const { start, end } = endingSoon(6);
+    const mine = await prisma.booking.create({
+      data: { title: 'Mine', startsAt: start, endsAt: end, roomId, userId: olena },
+    });
+    await prisma.booking.create({
+      data: {
+        title: 'Next',
+        startsAt: end,
+        endsAt: DateTime.fromJSDate(end).plus({ hours: 1 }).toJSDate(),
+        roomId,
+        userId: bohdan,
+      },
+    });
+
+    expect(await findEndingSoon(olena, 10)).toHaveLength(1);
+    await markNotified([mine.id], olena);
+    expect(await findEndingSoon(olena, 10)).toHaveLength(0);
+  });
+
+  it('does not warn about someone else booking', async () => {
+    const { start, end } = endingSoon(6);
+    await prisma.booking.create({
+      data: { title: 'Theirs', startsAt: start, endsAt: end, roomId, userId: bohdan },
+    });
+    await prisma.booking.create({
+      data: {
+        title: 'Next',
+        startsAt: end,
+        endsAt: DateTime.fromJSDate(end).plus({ hours: 1 }).toJSDate(),
+        roomId,
+        userId: olena,
+      },
+    });
+
+    expect(await findEndingSoon(olena, 10)).toHaveLength(0);
   });
 });

@@ -97,6 +97,12 @@ const uk = {
     showMore: 'Показати ще',
     loadingMore: 'Завантажуємо…',
   },
+  notifications: {
+    endingSoon: 'Бронювання скоро завершується',
+    nextIsTaken: 'Наступний слот уже зайнятий',
+    until: 'до',
+    dismiss: 'Зрозуміло',
+  },
   confirm: {
     cancelTitle: 'Скасувати бронювання?',
     cancelText: 'Слот одразу стане вільним для інших.',
@@ -247,6 +253,12 @@ const en: Dictionary = {
     loadFailed: 'Could not load the list',
     showMore: 'Show more',
     loadingMore: 'Loading…',
+  },
+  notifications: {
+    endingSoon: 'Your booking ends soon',
+    nextIsTaken: 'The next slot is already taken',
+    until: 'until',
+    dismiss: 'Got it',
   },
   confirm: {
     cancelTitle: 'Cancel this booking?',

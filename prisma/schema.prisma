@@ -41,6 +41,10 @@ model Booking {
 
   createdAt DateTime @default(now())
 
+  // Set when the author has seen the ending soon notification. Storing it
+  // means a page reload cannot show the same notification twice.
+  notifiedAt DateTime?
+
   // Second line of defence against races: two identical start times in the
   // same room are impossible. Partial overlaps with different start times are
   // NOT caught here, the transaction handles those.

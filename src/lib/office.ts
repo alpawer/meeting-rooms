@@ -13,6 +13,9 @@ export const OFFICE_TIMEZONE = process.env.OFFICE_TIMEZONE ?? 'Europe/Kyiv';
 export const OPEN_HOUR = Number(process.env.OFFICE_OPEN_HOUR ?? 9);
 export const CLOSE_HOUR = Number(process.env.OFFICE_CLOSE_HOUR ?? 19);
 
+/** How long before a booking ends its author is warned, in minutes. */
+export const NOTIFY_BEFORE_MINUTES = Number(process.env.NOTIFY_BEFORE_MINUTES ?? 10);
+
 export const SLOT_MINUTES = 30;
 export const MIN_DURATION_MINUTES = 30;
 export const MAX_DURATION_MINUTES = 240;
