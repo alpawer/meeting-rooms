@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaClient } from '@prisma/client';
 import { DateTime } from 'luxon';
+import { createVerificationToken, verifyEmail } from '@/lib/verification';
 import {
   cancelBooking,
   createBooking,
@@ -297,5 +298,44 @@ describe('ending soon notifications', () => {
     });
 
     expect(await findEndingSoon(olena, 10)).toHaveLength(0);
+  });
+});
+
+describe('email verification', () => {
+  it('confirms an address and clears the token', async () => {
+    const token = createVerificationToken();
+    const user = await prisma.user.create({
+      data: {
+        name: 'New',
+        email: 'new@test.local',
+        passwordHash: 'x',
+        verificationToken: token,
+      },
+    });
+
+    expect(await verifyEmail(token)).toBe('verified');
+
+    const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(after.emailVerifiedAt).not.toBeNull();
+    expect(after.verificationToken).toBeNull();
+  });
+
+  it('refuses the same link twice', async () => {
+    const token = createVerificationToken();
+    await prisma.user.create({
+      data: {
+        name: 'New',
+        email: 'new2@test.local',
+        passwordHash: 'x',
+        verificationToken: token,
+      },
+    });
+
+    expect(await verifyEmail(token)).toBe('verified');
+    expect(await verifyEmail(token)).toBe('invalid');
+  });
+
+  it('refuses an unknown token', async () => {
+    expect(await verifyEmail('no-such-token')).toBe('invalid');
   });
 });

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
 import { apiError, localeFrom, notFound, readJson, unauthorized, validationError } from '@/lib/http';
 import { buildSchemas } from '@/lib/schemas';
+import { messages } from '@/lib/messages';
 import { createBooking, listRoomBookings } from '@/lib/bookings';
 
 /** GET /api/bookings?roomId=...&from=ISO&to=ISO */
@@ -31,6 +32,12 @@ export async function POST(request: Request) {
   const locale = localeFrom(request);
   const user = await getSessionUser();
   if (!user) return unauthorized(locale);
+
+  // The spec blocks booking until the address is confirmed, signing in and
+  // browsing stay open so the user can see why.
+  if (!user.emailVerified) {
+    return apiError(403, 'EMAIL_NOT_VERIFIED', messages(locale).api.emailNotVerified);
+  }
 
   const parsed = buildSchemas(locale).createBooking.safeParse(await readJson(request));
   if (!parsed.success) return validationError(parsed.error, locale);

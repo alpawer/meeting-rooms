@@ -13,6 +13,11 @@ model User {
   email        String    @unique
   passwordHash String
   createdAt    DateTime  @default(now())
+
+  // Until this is set the user can sign in but cannot book. The token is
+  // single use, it is cleared once the address is confirmed.
+  emailVerifiedAt   DateTime?
+  verificationToken String?   @unique
   bookings     Booking[]
 }
 

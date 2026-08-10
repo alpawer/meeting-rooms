@@ -57,8 +57,9 @@ async function main() {
     USERS.map((user) =>
       prisma.user.upsert({
         where: { email: user.email },
-        update: { name: user.name, passwordHash },
-        create: { ...user, passwordHash },
+        // Seeded accounts are ready to use, no confirmation step for them.
+        update: { name: user.name, passwordHash, emailVerifiedAt: new Date() },
+        create: { ...user, passwordHash, emailVerifiedAt: new Date() },
       }),
     ),
   );

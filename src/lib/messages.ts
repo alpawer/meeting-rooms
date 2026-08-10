@@ -97,6 +97,14 @@ const uk = {
     showMore: 'Показати ще',
     loadingMore: 'Завантажуємо…',
   },
+  verify: {
+    successTitle: 'Email підтверджено',
+    successText: 'Тепер можна бронювати кімнати.',
+    failTitle: 'Посилання не спрацювало',
+    failText: 'Можливо, воно вже використане або застаріле.',
+    banner: 'Підтвердіть email, щоб бронювати. Посилання у логу сервера.',
+    toRooms: 'До кімнат',
+  },
   notifications: {
     endingSoon: 'Бронювання скоро завершується',
     nextIsTaken: 'Наступний слот уже зайнятий',
@@ -148,6 +156,7 @@ const uk = {
     unauthorized: 'Потрібно увійти.',
     forbidden: 'Немає доступу до цього ресурсу.',
     notFound: 'Не знайдено.',
+    emailNotVerified: 'Підтвердіть email, щоб бронювати. Посилання у логу сервера.',
   },
   booking: {
     invalidRange: 'Час завершення має бути пізніше за час початку.',
@@ -254,6 +263,14 @@ const en: Dictionary = {
     showMore: 'Show more',
     loadingMore: 'Loading…',
   },
+  verify: {
+    successTitle: 'Email confirmed',
+    successText: 'You can book rooms now.',
+    failTitle: 'That link did not work',
+    failText: 'It may have been used already or expired.',
+    banner: 'Confirm your email to book. The link is in the server log.',
+    toRooms: 'Go to rooms',
+  },
   notifications: {
     endingSoon: 'Your booking ends soon',
     nextIsTaken: 'The next slot is already taken',
@@ -305,6 +322,7 @@ const en: Dictionary = {
     unauthorized: 'You need to sign in.',
     forbidden: 'You do not have access to this resource.',
     notFound: 'Not found.',
+    emailNotVerified: 'Confirm your email to book. The link is in the server log.',
   },
   booking: {
     invalidRange: 'The end time must be later than the start time.',

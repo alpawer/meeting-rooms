@@ -1148,3 +1148,12 @@ h1 {
     max-width: none;
   }
 }
+
+.verify-banner {
+  background: var(--danger-soft);
+  border-bottom: 1px solid var(--danger-line);
+  color: var(--danger);
+  font-size: 14px;
+  padding: 10px 20px;
+  text-align: center;
+}

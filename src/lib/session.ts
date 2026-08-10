@@ -17,6 +17,8 @@ export interface SessionUser {
   id: string;
   name: string;
   email: string;
+  /** Unverified users can sign in and browse, but not book. */
+  emailVerified: boolean;
 }
 
 export async function createSession(userId: string): Promise<void> {
@@ -52,10 +54,14 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     const { payload } = await jwtVerify(token, secret());
     if (typeof payload.sub !== 'string') return null;
 
-    return await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true, email: true, emailVerifiedAt: true },
     });
+    if (!user) return null;
+
+    const { emailVerifiedAt, ...rest } = user;
+    return { ...rest, emailVerified: emailVerifiedAt !== null };
   } catch {
     return null;
   }

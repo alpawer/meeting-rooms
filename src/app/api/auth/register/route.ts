@@ -6,6 +6,7 @@ import { buildSchemas } from '@/lib/schemas';
 import { apiError, localeFrom, readJson, validationError } from '@/lib/http';
 import { messages } from '@/lib/messages';
 import { createSession } from '@/lib/session';
+import { createVerificationToken, logVerificationLink } from '@/lib/verification';
 
 export async function POST(request: Request) {
   const locale = localeFrom(request);
@@ -13,15 +14,21 @@ export async function POST(request: Request) {
 
   if (!parsed.success) return validationError(parsed.error, locale);
 
+  const token = createVerificationToken();
+
   try {
     const user = await prisma.user.create({
       data: {
         name: parsed.data.name.trim(),
         email: normalizeEmail(parsed.data.email),
         passwordHash: await hashPassword(parsed.data.password),
+        verificationToken: token,
       },
       select: { id: true, name: true, email: true },
     });
+
+    // No SMTP in dev, the confirmation link goes to the server log.
+    logVerificationLink(user.email, token);
 
     await createSession(user.id);
     return NextResponse.json({ user }, { status: 201 });
