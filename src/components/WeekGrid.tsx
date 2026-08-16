@@ -203,7 +203,8 @@ export function WeekGrid({
         )
       : -1;
 
-  const showsShiftedTime = zone !== office.timeZone;
+  const showsShiftedTime =
+    now.setZone(zone).offset !== now.setZone(office.timeZone).offset;
 
   return (
     <main className="page">
