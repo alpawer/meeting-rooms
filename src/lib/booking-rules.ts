@@ -1,8 +1,10 @@
 import { durationMinutes, findConflict, isValidInterval, type Interval } from '@/lib/interval';
-import { DEFAULT_LOCALE, messages, type Locale } from '@/lib/messages';
+import { DEFAULT_LOCALE, fmt, messages, type Locale } from '@/lib/messages';
 import {
   MAX_DURATION_MINUTES,
   MIN_DURATION_MINUTES,
+  OPEN_HOUR,
+  CLOSE_HOUR,
   isAlignedToSlot,
   isWithinWorkingHours,
 } from '@/lib/office';
@@ -59,7 +61,8 @@ export function checkBookingRules(
 
   if (candidate.start.getTime() < now.getTime()) return fail('IN_THE_PAST', locale);
   if (!isWithinWorkingHours(candidate.start, candidate.end)) {
-    return fail('OUTSIDE_WORKING_HOURS', locale);
+    const msg = fmt(messages(locale).booking.outsideWorkingHours, { open: OPEN_HOUR, close: CLOSE_HOUR });
+    return { code: 'OUTSIDE_WORKING_HOURS', message: msg };
   }
 
   if (findConflict(candidate, existing)) return fail('SLOT_TAKEN', locale);

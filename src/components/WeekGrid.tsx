@@ -5,6 +5,7 @@ import { DateTime } from 'luxon';
 import { usePreferences } from '@/components/Preferences';
 import { ApiError, api } from '@/lib/client-api';
 import { formatRange, userTimeZone, zoneLabel } from '@/lib/format';
+import { fmt } from '@/lib/messages';
 import { BookingDialog } from '@/components/BookingDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useNarrow } from '@/lib/use-narrow';
@@ -223,13 +224,13 @@ export function WeekGrid({
             <>
               {t.grid.yourZone}: {zoneLabel(zone)}
               <br />
-              {t.grid.officeWorksAt} ({zoneLabel(office.timeZone)})
+              {fmt(t.grid.officeWorksAt, { open: office.openHour, close: office.closeHour })} ({zoneLabel(office.timeZone)})
             </>
           ) : (
             <>
               {t.grid.yourZoneMatches}
               <br />
-              {zoneLabel(office.timeZone)} · {t.rooms.workingHours}
+              {zoneLabel(office.timeZone)} · {fmt(t.rooms.workingHours, { open: office.openHour, close: office.closeHour })}
             </>
           )}
         </p>

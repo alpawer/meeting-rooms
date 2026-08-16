@@ -47,7 +47,7 @@ const uk = {
   rooms: {
     pickRoom: 'Крок 1, оберіть кімнату',
     title: 'Переговорні',
-    workingHours: 'Робочі години 09:00–19:00',
+    workingHours: 'Робочі години {open}:00–{close}:00',
     officeTime: 'Час офісу',
     capacityFrom: 'Місткість від',
     anyCapacity: 'будь-яка',
@@ -67,7 +67,7 @@ const uk = {
     nextWeek: 'Наступний',
     yourZoneMatches: 'Ваш пояс збігається з офісним',
     yourZone: 'Час показано у вашому поясі',
-    officeWorksAt: 'Кімната працює 09:00–19:00 за часом офісу',
+    officeWorksAt: 'Кімната працює {open}:00–{close}:00 за часом офісу',
     detectingZone: 'Визначаємо ваш часовий пояс…',
     loadFailedTitle: 'Розклад не завантажився',
     legendMine: 'ваше бронювання',
@@ -164,7 +164,7 @@ const uk = {
     tooShort: 'Мінімальна тривалість 30 хвилин.',
     tooLong: 'Максимальна тривалість 4 години.',
     inThePast: 'Бронювати можна лише майбутній час.',
-    outsideWorkingHours: 'Кімнати доступні з 09:00 до 19:00 за часом офісу.',
+    outsideWorkingHours: 'Кімнати доступні з {open}:00 до {close}:00 за часом офісу.',
     slotTaken: 'Цей час уже зайнятий.',
   },
 } as const;
@@ -213,7 +213,7 @@ const en: Dictionary = {
   rooms: {
     pickRoom: 'Step 1, pick a room',
     title: 'Meeting rooms',
-    workingHours: 'Working hours 09:00–19:00',
+    workingHours: 'Working hours {open}:00–{close}:00',
     officeTime: 'Office time',
     capacityFrom: 'Capacity from',
     anyCapacity: 'any',
@@ -233,7 +233,7 @@ const en: Dictionary = {
     nextWeek: 'Next',
     yourZoneMatches: 'Your timezone matches the office',
     yourZone: 'Times are shown in your timezone',
-    officeWorksAt: 'The room is open 09:00–19:00 office time',
+    officeWorksAt: 'The room is open {open}:00–{close}:00 office time',
     detectingZone: 'Detecting your timezone…',
     loadFailedTitle: 'Could not load the schedule',
     legendMine: 'your booking',
@@ -330,7 +330,7 @@ const en: Dictionary = {
     tooShort: 'Minimum duration is 30 minutes.',
     tooLong: 'Maximum duration is 4 hours.',
     inThePast: 'Only future time can be booked.',
-    outsideWorkingHours: 'Rooms are available from 09:00 to 19:00 office time.',
+    outsideWorkingHours: 'Rooms are available from {open}:00 to {close}:00 office time.',
     slotTaken: 'This time is already taken.',
   },
 };
@@ -339,4 +339,9 @@ const DICTIONARIES: Record<Locale, Dictionary> = { uk, en };
 
 export function messages(locale: Locale = DEFAULT_LOCALE): Dictionary {
   return DICTIONARIES[locale];
+}
+
+/** Replaces {key} tokens in a message string with values from vars. */
+export function fmt(str: string, vars: Record<string, number>): string {
+  return str.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 }

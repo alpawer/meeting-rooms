@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { usePreferences } from '@/components/Preferences';
+import { fmt } from '@/lib/messages';
 
 interface Room {
   id: string;
@@ -13,7 +14,17 @@ interface Room {
 
 const CAPACITY_FILTERS = [0, 4, 8, 12] as const;
 
-export function RoomsBrowser({ rooms, officeZone }: { rooms: Room[]; officeZone: string }) {
+export function RoomsBrowser({
+  rooms,
+  officeZone,
+  openHour,
+  closeHour,
+}: {
+  rooms: Room[];
+  officeZone: string;
+  openHour: number;
+  closeHour: number;
+}) {
   const { t } = usePreferences();
   const [minCapacity, setMinCapacity] = useState(0);
 
@@ -30,7 +41,7 @@ export function RoomsBrowser({ rooms, officeZone }: { rooms: Room[]; officeZone:
           <h1>{t.rooms.title}</h1>
         </div>
         <p className="zone-note">
-          {t.rooms.workingHours}
+          {fmt(t.rooms.workingHours, { open: openHour, close: closeHour })}
           <br />
           {t.rooms.officeTime}: {officeZone}
         </p>
