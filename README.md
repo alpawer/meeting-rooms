@@ -17,12 +17,9 @@
 |---|---|
 | ![Нове бронювання](docs/screenshots/03-dialog.png) | ![Темна тема](docs/screenshots/04-dark.png) |
 
-<details>
-<summary>Мобільний вигляд</summary>
-
-![Мобільний вигляд](docs/screenshots/05-mobile.png)
-
-</details>
+| Мобільний вигляд |
+|---|
+| <img src="docs/screenshots/05-mobile.png" width="390"> |
 
 ## Запуск
 
