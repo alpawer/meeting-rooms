@@ -343,5 +343,5 @@ export function messages(locale: Locale = DEFAULT_LOCALE): Dictionary {
 
 /** Replaces {key} tokens in a message string with values from vars. */
 export function fmt(str: string, vars: Record<string, number>): string {
-  return str.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
+  return str.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '').padStart(2, '0'));
 }
