@@ -1,29 +1,27 @@
 # Meeting rooms
 
-Веб-застосунок для бронювання переговорних кімнат. Тижневий розклад кімнати,
-створення й скасування власних бронювань, час у поясі користувача.
+A web app for booking meeting rooms. Weekly room schedule, create and cancel your own bookings, times shown in the user's timezone.
 
-Стек: TypeScript, Next.js 15 з App Router, Prisma 7, SQLite, Vitest.
-Фронтенд і API в одному застосунку. Верстка власна, без UI-фреймворків і без
-готових календарних компонентів.
+Stack: TypeScript, Next.js 15 with App Router, Prisma 7, SQLite, Vitest.
+Frontend and API in a single app. Custom styles — no UI framework, no off-the-shelf calendar component.
 
-## Скріншоти
+## Screenshots
 
-| Список кімнат | Тижневий розклад |
+| Room list | Weekly schedule |
 |---|---|
-| ![Список кімнат](docs/screenshots/01-rooms.png) | ![Розклад з бронюваннями](docs/screenshots/02-grid.png) |
+| ![Room list](docs/screenshots/01-rooms.png) | ![Schedule with bookings](docs/screenshots/02-grid.png) |
 
-| Діалог бронювання | Темна тема |
+| Booking dialog | Dark theme |
 |---|---|
-| ![Нове бронювання](docs/screenshots/03-dialog.png) | ![Темна тема](docs/screenshots/04-dark.png) |
+| ![New booking](docs/screenshots/03-dialog.png) | ![Dark theme](docs/screenshots/04-dark.png) |
 
-| Мобільний вигляд |
+| Mobile view |
 |---|
 | <img src="docs/screenshots/05-mobile.png" width="390"> |
 
-## Запуск
+## Getting started
 
-Потрібен Node.js 20 або новіший.
+Requires Node.js 20 or later.
 
 ```bash
 npm install
@@ -32,206 +30,158 @@ npm run db:setup
 npm run dev
 ```
 
-Застосунок буде на `http://localhost:3000`.
+The app will be at `http://localhost:3000`.
 
-`npm run db:setup` застосовує міграції, генерує клієнт Prisma і наповнює базу
-демо-даними.
+`npm run db:setup` applies migrations, generates the Prisma client, and seeds the database with demo data.
 
-### Через Docker
+### Docker
 
 ```bash
 docker compose up --build
 ```
 
-Міграції та сіди застосовуються при старті контейнера. База лежить у томі, тому
-дані переживають перезапуск.
+Migrations and seeds run on container start. The database lives in a volume, so data survives restarts.
 
-### Сіди окремо
+### Seed only
 
 ```bash
 npm run db:seed
 ```
 
-Сід ідемпотентний, його можна запускати повторно. Він створює шість кімнат,
-двох користувачів і сім демо-бронювань на найближчих робочих днях.
+The seed is idempotent and safe to re-run. It creates six rooms, two users, and seven demo bookings on the nearest working days.
 
-### Тестові користувачі
+### Test accounts
 
-| Email                    | Пароль        |
+| Email                    | Password      |
 | ------------------------ | ------------- |
 | `danylo@ua-skills.com`   | `password123` |
 | `yaroslav@ua-skills.com` | `password123` |
 
-Обидва мають демо-бронювання, тому одразу видно різницю між своїми та чужими
-слотами в сітці.
+Both accounts have demo bookings, so you can immediately see the difference between your own and others' slots in the grid.
 
-### Тести
+### Tests
 
 ```bash
-npm test                 # 43 юніт-тести
-npm run test:integration # 21 інтеграційний тест проти справжньої бази
+npm test                 # 55 unit + property-based tests
+npm run test:integration # 21 integration tests against a real database
 ```
 
-## Як перевіряється перетин
+## How overlap is checked
 
-Бронювання це напіввідкритий інтервал від початку включно до кінця виключно.
-Уся перевірка зводиться до одного предиката:
+A booking is a half-open interval — start inclusive, end exclusive. The entire check reduces to one predicate:
 
 ```ts
 a.start < b.end && b.start < a.end
 ```
 
-Строгі нерівності роблять бронювання впритул безкоштовно валідними. Коли кінець
-одного дорівнює початку іншого, жодна з двох умов не виконується, і перетину
-немає. Окремого правила для суміжних слотів не існує, воно випадає з моделі
-інтервалу саме собою.
+Strict inequalities make back-to-back bookings valid for free. When one booking's end equals another's start, neither condition holds, so there is no overlap. No special case for adjacent slots — it falls out of the interval model naturally.
 
-Ці функції не знають ні про базу, ні про часові пояси. Вони приймають `Date` і
-повертають `boolean`, тому тести працюють без підняття застосунку.
+These functions know nothing about the database or timezones. They take `Date` and return `boolean`, so tests run without starting the app.
 
-У базі перевірка виконується тим самим предикатом мовою SQL:
-`startsAt < candidate.end AND endsAt > candidate.start`. Вибірка перетинів і
-вставка виконуються в одній транзакції, бо між окремими читанням і записом є
-щілина, у яку встигне другий запит.
+In the database the same predicate is expressed in SQL:
+`startsAt < candidate.end AND endsAt > candidate.start`. The overlap check and the insert happen inside a single transaction, because a gap between a separate read and write is wide enough for a second request to slip through.
 
-## Як зберігається час
+## How time is stored
 
-Обидві межі бронювання зберігаються в UTC. Часовий пояс застосовується лише на
-двох межах системи: при перевірці робочих годин і при показі користувачеві.
+Both booking boundaries are stored in UTC. The timezone is applied only at two system boundaries: when checking working hours and when displaying to the user.
 
-Робочі години це властивість офісу, а не користувача, тому вони перевіряються в
-`Europe/Kyiv` незалежно від того, де запущений сервер і де сидить людина. Межі
-дня беруться календарно через `set({ hour })`, а не додаванням тривалості до
-опівночі. Різниця видно двічі на рік: `plus({ hours: 9 })` додає дев'ять реальних
-годин, і в день переходу на літній час це дає 10:00 замість 09:00, зсуваючи все
-вікно офісу. Тести на обидва дні переходу задають очікувані інстанти вручну, а не
-тією самою формулою, що в коді, інакше вони повторювали б ту саму помилку.
+Working hours are a property of the office, not the user, so they are always checked in `Europe/Kyiv` regardless of where the server runs or where the person sits. Day boundaries are computed with `set({ hour })`, not by adding a duration to midnight. The difference shows up twice a year: `plus({ hours: 9 })` adds nine real hours, so on a DST transition day it yields 10:00 instead of 09:00, shifting the entire office window. Tests for both transition days specify the expected instants directly rather than deriving them with the same formula as the code — otherwise they would reproduce the same bug.
 
-В інтерфейсі час показується в поясі браузера. Сітка при цьому лишається
-офісною: колонки це дні офісу, рядки це двадцять півгодинних слотів від 09:00 до
-19:00 за часом офісу. Конвертуються тільки підписи шкали. Тому користувач у
-Берліні бачить ту саму сітку зі зсувом, а поруч висить підпис із обома поясами.
+The UI shows times in the browser's timezone. The grid stays office-anchored: columns are office days, rows are twenty 30-minute slots from 09:00 to 19:00 office time. Only the row labels are converted. So a user in Berlin sees the same grid shifted, with a note showing both timezones.
 
-## Захист від гонки
+## Race condition protection
 
-Два рівні. Перший це транзакція: вибірка перетинів і вставка виконуються разом.
-Другий це унікальний індекс на `roomId` і `startsAt`, який ловить збіг початків,
-навіть якщо дві транзакції якимось чином прочитають слот вільним. Гілка `P2002`
-повертає ту саму помилку, що й звичайна перевірка, тому користувач бачить одне
-повідомлення незалежно від того, який рівень спрацював.
+Two layers. First, a transaction: the overlap check and the insert run together. Second, a unique index on `roomId` and `startsAt` catches matching start times even if two transactions somehow both read the slot as free. The `P2002` branch returns the same error as the business-logic check, so the user sees one message regardless of which layer fired.
 
-Важлива межа другого рівня: індекс покриває лише збіг початків. Часткові
-перекриття з різними початками, наприклад 10:00 до 12:00 і 10:30 до 11:30, він
-не зупинить. За них відповідає тільки перевірка в транзакції.
+An important limit of the second layer: the index only covers matching start times. Partial overlaps with different starts — say 10:00–12:00 and 10:30–11:30 — are not caught by the index. Only the transactional check handles those.
 
-Перевірено навантаженням на продакшн-збірці. Вісім одночасних запитів на один
-слот дали один `201` і сім `409`. Шість перекритих запитів із різними початками,
-де індекс безсилий, дали один `201` і п'ять `409`. В обох випадках у базі лишився
-рівно один рядок. Той самий сценарій покритий інтеграційним тестом.
+Verified under load on a production build. Eight concurrent requests for the same slot produced one `201` and seven `409`. Six overlapping requests with different start times, where the index is powerless, produced one `201` and five `409`. In both cases exactly one row ended up in the database. The same scenario is covered by an integration test.
 
-`better-sqlite3` синхронний, тому транзакції не можуть перетнутися. Prisma 6
-вимагала для цього `connection_limit=1` у рядку підключення, Prisma 7 віддала
-керування пулом драйверу, і параметр зник.
+`better-sqlite3` is synchronous, so transactions cannot interleave. Prisma 6 required `connection_limit=1` in the connection string for this; Prisma 7 delegates pool management to the driver, and the parameter is gone.
 
-## Реалізовані бонусні пункти
+## Bonus features implemented
 
-- Docker compose, що піднімає все однією командою
-- Захист від гонки, описаний вище
-- Інтеграційні тести API
-- Фільтр кімнат за місткістю
-- Дві мови інтерфейсу, українська та англійська
-- Світла й темна теми
-- Мобільний сценарій, сітка показує один день замість тижня на вузьких екранах
-- Сповіщення про кінець бронювання, якщо наступний слот у кімнаті зайнятий
-- Підтвердження email у dev-режимі, посилання виводиться в лог сервера
+- Docker Compose — brings everything up with one command
+- Race condition protection described above
+- API integration tests
+- Room filter by capacity
+- Two UI languages — Ukrainian and English
+- Light and dark themes
+- Mobile layout — the grid shows one day instead of a week on narrow screens
+- End-of-booking notification when the next slot in the room is taken
+- Email confirmation in dev mode — the link is printed to the server log
 
-Не реалізовано: повторювані бронювання.
+Not implemented: recurring bookings.
 
-### Підтвердження email
+### Email confirmation
 
-Реального SMTP немає, тож посилання підтвердження друкується в лог сервера, як
-дозволяє ТЗ. До підтвердження користувач може увійти й переглядати розклад, але
-не може бронювати: створення повертає `403`, а в шапці висить банер з поясненням.
+There is no real SMTP, so the confirmation link is printed to the server log, as the spec allows. Before confirming, a user can sign in and browse the schedule but cannot book: creation returns `403` and a banner explains why.
 
-Токен одноразовий, він очищується при підтвердженні, тому те саме посилання
-вдруге не спрацює. Тестові акаунти з сіда вже підтверджені.
+The token is single-use and is cleared on confirmation, so the same link will not work twice. Seed accounts are pre-confirmed.
 
-### Сповіщення про кінець бронювання
+### End-of-booking notification
 
-Автор отримує тост за `NOTIFY_BEFORE_MINUTES` хвилин до кінця свого бронювання,
-але лише якщо наступний слот у цій кімнаті зайнятий. За замовчуванням десять
-хвилин, значення задається через env.
+The booking author receives a toast `NOTIFY_BEFORE_MINUTES` minutes before their booking ends, but only if the next slot in that room is taken. The default is ten minutes, configurable via env.
 
-Показане сповіщення позначається в базі полем `notifiedAt`, тому перезавантаження
-сторінки не покаже його вдруге. Скасування будь-якого з двох бронювань видаляє
-рядок, і пара просто перестає збігатися, тож окремої логіки для цього не
-потрібно. Клієнт опитує сервер раз на хвилину, чого достатньо для десятихвилинного
-вікна.
+A shown notification is marked in the database with `notifiedAt`, so a page refresh will not show it again. Cancelling either of the two bookings deletes the row and the pair simply stops matching — no separate cleanup logic needed. The client polls the server once a minute, which is sufficient for a ten-minute window.
 
-## Структура
+## Structure
 
+```
 prisma/
-schema.prisma моделі User, Room, Booking
-seed.ts кімнати, тестові користувачі, демо-бронювання
+  schema.prisma       User, Room, Booking models
+  seed.ts             rooms, test users, demo bookings
 src/
-lib/
-interval.ts логіка перетину інтервалів, покрита тестами
-booking-rules.ts правила бронювання
-office.ts пояс офісу, робочі години
-bookings.ts створення, скасування, вибірки, захист від гонки
-session.ts сесія в httpOnly cookie
-password.ts хеші паролів, нормалізація email
-schemas.ts zod-схеми запитів
-messages.ts усі тексти інтерфейсу, дві мови
-http.ts єдиний формат помилки API
-components/
-WeekGrid.tsx сітка розкладу на CSS Grid
-BookingDialog.tsx створення бронювання
-ConfirmDialog.tsx підтвердження скасування
-MyBookings.tsx свої бронювання
-RoomsBrowser.tsx список кімнат
-app/
-api/ роути API
-rooms/, my/, login/, register/
+  lib/
+    interval.ts       interval overlap logic, covered by tests
+    booking-rules.ts  booking validation rules
+    office.ts         office timezone, working hours
+    bookings.ts       create, cancel, queries, race protection
+    session.ts        session in an httpOnly cookie
+    password.ts       password hashing, email normalisation
+    schemas.ts        Zod request schemas
+    messages.ts       all UI strings, two locales
+    http.ts           unified API error format
+  components/
+    WeekGrid.tsx      schedule grid built on CSS Grid
+    BookingDialog.tsx booking creation
+    ConfirmDialog.tsx cancellation confirmation
+    MyBookings.tsx    user's own bookings
+    RoomsBrowser.tsx  room list
+  app/
+    api/              API routes
+    rooms/, my/, login/, register/
 tests/
-
+```
 
 ## API
 
-Усі роути, крім автентифікації, вимагають сесію.
+All routes except auth require a session.
 
-| Метод    | Шлях                                       | Призначення                  |
-| -------- | ------------------------------------------ | ---------------------------- |
-| `POST`   | `/api/auth/register`                       | реєстрація                   |
-| `POST`   | `/api/auth/login`                          | вхід                         |
-| `POST`   | `/api/auth/logout`                         | вихід                        |
-| `GET`    | `/api/auth/me`                             | поточний користувач          |
-| `GET`    | `/api/rooms?minCapacity=`                  | кімнати                      |
-| `GET`    | `/api/bookings?roomId=&from=&to=`          | бронювання кімнати за період |
-| `POST`   | `/api/bookings`                            | створення                    |
-| `DELETE` | `/api/bookings/:id`                        | скасування, чуже дає 403     |
-| `GET`    | `/api/bookings/mine?scope=upcoming&page=0` | свої бронювання              |
+| Method   | Path                                       | Purpose                        |
+| -------- | ------------------------------------------ | ------------------------------ |
+| `POST`   | `/api/auth/register`                       | sign up                        |
+| `POST`   | `/api/auth/login`                          | sign in                        |
+| `POST`   | `/api/auth/logout`                         | sign out                       |
+| `GET`    | `/api/auth/me`                             | current user                   |
+| `GET`    | `/api/rooms?minCapacity=`                  | list rooms                     |
+| `GET`    | `/api/bookings?roomId=&from=&to=`          | room bookings for a period     |
+| `POST`   | `/api/bookings`                            | create booking                 |
+| `DELETE` | `/api/bookings/:id`                        | cancel — returns 403 if not yours |
+| `GET`    | `/api/bookings/mine?scope=upcoming&page=0` | your bookings                  |
 
-Формат помилки однаковий усюди:
+Error format is consistent across all routes:
 
 ```json
-{ "error": { "code": "SLOT_TAKEN", "message": "Цей час уже зайнятий." } }
+{ "error": { "code": "SLOT_TAKEN", "message": "This time is already taken." } }
 ```
 
-Для помилок валідації додається `fields`, щоб форма показала текст біля
-потрібного поля. Мова відповіді визначається заголовком `Accept-Language`.
+Validation errors include a `fields` map so the form can display text next to the right field. The response language is determined by the `Accept-Language` header.
 
-## Рішення, які варто пояснити
+## Design decisions worth noting
 
-- Валідація виконується на сервері, а не лише у формі. Кратність, тривалість,
-  робочі години, минулий час, перетини і право на скасування перевіряються в API.
-  Прямий запит через `curl` отримує ті самі `422`, `409` і `403`.
-- Вхід повертає однакову помилку на невідомий email і невірний пароль. Інакше
-  форму можна використати як перевірку, чи зареєстрована конкретна адреса.
-- Унікальність email забезпечує база, а не перевірка перед вставкою. Перевірка
-  лишала б щілину між читанням і записом.
-- Скасування видаляє рядок. Це тримає унікальний індекс чистим, бо зі статусом
-  скасовано він блокував би повторне бронювання того самого слота.
-- Тема й мова застосовуються скриптом до першого рендеру. Читання їх у ефекті
-  давало миготіння мови при кожній навігації і потребу тиснути перемикач теми
-  двічі після перезавантаження.
+- Validation runs on the server, not only in the form. Slot alignment, duration, working hours, past time, overlaps, and cancellation rights are all checked in the API. A direct `curl` request gets the same `422`, `409`, and `403`.
+- Sign-in returns the same error for an unknown email and a wrong password. Otherwise the form could be used to check whether a given address is registered.
+- Email uniqueness is enforced by the database, not by a pre-insert check. A check would leave a gap between the read and the write.
+- Cancellation deletes the row. This keeps the unique index clean — a "cancelled" status would block re-booking the same slot.
+- Theme and locale are applied by a script before the first render. Reading them in an effect caused a language flash on every navigation and required pressing the theme toggle twice after a reload.
